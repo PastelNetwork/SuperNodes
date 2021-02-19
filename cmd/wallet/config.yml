@@ -1,0 +1,7 @@
+pastel:
+  data-dir: "~/.pastel"
+
+storage:
+  rpc-host: "localhost"
+  rpc-port: 4001
+  p2p-port: 4444
