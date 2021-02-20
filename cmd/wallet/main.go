@@ -8,14 +8,15 @@ import (
 
 func main() {
 
-	// Connect to cNode
+	restServer := common.RESTServer{}
+	p2pServer := P2PServer{}
 
-	common.Run( "Pastel Wallet Service",
+	common.Run("Pastel Wallet Service",
 		"config.yml", "stovacore.log",
 		[]func(ctx context.Context, config *common.Config, logger *common.Logger, wg *sync.WaitGroup) func() error{
-			// Start RPC Server
-			StartJsonRpcServer,
+			// Start REST Server
+			restServer.Start,
 			// Start p2p Listener
-			StartP2P,
+			p2pServer.Start,
 		})
 }

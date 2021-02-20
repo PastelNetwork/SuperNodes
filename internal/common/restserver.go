@@ -2,30 +2,49 @@ package common
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"net/http"
 	"sync"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello from Snippetbox"))
+type RESTServer struct {
+	psl         PslNode
+	GetHandlers map[string]interface{}
 }
 
-// Add a showSnippet handler function.
-func showSnippet(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Display a specific snippet..."))
+func (s *RESTServer) Getinfo(c echo.Context) error {
+	res := s.psl.Getblockchaininfo()
+	var val string
+	if res != nil && res["blocks"] != nil {
+		blocks, err := res["blocks"].(json.Number).Int64()
+		if err == nil {
+			val = fmt.Sprintf("%d", blocks)
+		}
+	}
+	return c.String(http.StatusOK, val)
 }
 
-// Add a createSnippet handler function.
-func createSnippet(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Create a new snippet..."))
+func (s *RESTServer) RegisterTicket(c echo.Context) error {
+	return c.String(http.StatusOK, "!")
 }
-func StartRestServer(ctx context.Context, config *Config, logger *Logger, wg *sync.WaitGroup) func() error {
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet", showSnippet)
-	mux.HandleFunc("/snippet/create", createSnippet)
+func (s *RESTServer) Start(ctx context.Context, config *Config, logger *Logger, wg *sync.WaitGroup) func() error {
+
+	s.GetHandlers = make(map[string]interface{})
+	s.GetHandlers["getinfo"] = s.Getinfo
+
+	e := echo.New()
+	for n, h := range s.GetHandlers {
+		e.GET(n, h.(func(echo.Context) error))
+	}
+
+	restAddress := fmt.Sprintf("%s:%d", config.REST.Host, config.REST.Port)
+
+	// Connect to cNode
+	pslAddrress := fmt.Sprintf("http://%s:%d", config.Pastel.Host, config.Pastel.Port)
+	s.psl.Connect(pslAddrress, config.Pastel.User, config.Pastel.Pwd, logger)
 
 	return CreateServer("rest_server", ctx, config, logger, wg,
 		//startServer
@@ -34,7 +53,8 @@ func StartRestServer(ctx context.Context, config *Config, logger *Logger, wg *sy
 		},
 		//runServer
 		func(ctx context.Context) error {
-			if err := http.ListenAndServe(":4000", mux); err != http.ErrServerClosed {
+			//if err := http.ListenAndServe(restAddress, mux); err != http.ErrServerClosed {
+			if err := e.Start(restAddress); err != http.ErrServerClosed {
 				return fmt.Errorf("error starting Rest server: %w", err)
 			}
 			return nil
@@ -45,4 +65,3 @@ func StartRestServer(ctx context.Context, config *Config, logger *Logger, wg *sy
 			return nil
 		})
 }
-

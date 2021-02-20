@@ -6,19 +6,26 @@ import (
 )
 
 type Config struct {
-	Pastel	PastelConfiguration		`yaml:"pastel"`
-	Storage StorageConfiguration	`yaml:"storage"`
+	Pastel PastelConfiguration     `yaml:"pastel"`
+	REST   RESTServerConfiguration `yaml:"rest"`
+	P2P    P2PConfiguration        `yaml:"p2p"`
 }
 
 type PastelConfiguration struct {
 	DataDir string `yaml:"data-dir"`
+	Host    string `yaml:"host"`
+	Port    int    `yaml:"port"`
+	User    string `yaml:"user"`
+	Pwd     string `yaml:"pwd"`
 }
 
-type StorageConfiguration struct {
-	BootstrapNodes []string `yaml:"bootstrapNodes"`
-	RpcHost string 			`yaml:"rpc-host"`
-	RpcPort int 			`yaml:"rpc-port"`
-	Port int 				`yaml:"p2p-port"`
+type RESTServerConfiguration struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+}
+
+type P2PConfiguration struct {
+	Port int `yaml:"port"`
 }
 
 func (c *Config) LoadConfig(configFile string) error {

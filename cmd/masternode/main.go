@@ -1,20 +1,15 @@
 package main
 
-import (
-	"fmt"
-	"github.com/a-ok123/go-psl/internal/psl_tools"
-)
-
 func main() {
 
-	var psl psl_tools.PslNode
-	psl.Connect()
-
-	val, err := psl.GetMNRegFee()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("%d\n", val)
+	//var psl psl_tools.PslNode
+	//psl.Connect("http://127.0.0.1:9932", "rt", "rt")
+	//
+	//val, err := psl.GetMNRegFee()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Printf("%d\n", val)
 
 	/*	client := ipfs_client.IPFSClient{}
 

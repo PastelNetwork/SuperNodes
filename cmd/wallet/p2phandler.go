@@ -6,7 +6,10 @@ import (
 	"sync"
 )
 
-func StartP2P(ctx context.Context, config *common.Config, logger *common.Logger, wg *sync.WaitGroup) func() error {
+type P2PServer struct {
+}
+
+func (s *P2PServer) Start(ctx context.Context, config *common.Config, logger *common.Logger, wg *sync.WaitGroup) func() error {
 
 	return common.CreateServer("p2p_node", ctx, config, logger, wg,
 		//startServer

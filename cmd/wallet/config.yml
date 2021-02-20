@@ -1,7 +1,13 @@
 pastel:
   data-dir: "~/.pastel"
+  host: "127.0.0.1"
+  port: 9932
+  user: "rt"
+  pwd: "rt"
 
-storage:
-  rpc-host: "localhost"
-  rpc-port: 4001
-  p2p-port: 4444
+rest:
+  host: "localhost"
+  port: 4001
+
+p2p:
+  port: 4444

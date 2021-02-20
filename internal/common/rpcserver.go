@@ -2,15 +2,92 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 type RpcServer struct {
 	funcs map[string]interface{}
+}
+
+type RpcMethod struct {
+	Jsonrpc string   `json:"jsonrpc"`
+	Method  string   `json:"method"`
+	Params  []string `json:"params"`
+	Id      string   `json:"id"`
+}
+
+type JsonRpcServer struct {
+	psl PslNode
+}
+
+/*
+	parameters:
+		name of art
+		number of copies
+		price per copy
+
+		artist's pastel id
+		address
+*/
+func (s *JsonRpcServer) RegisterTicket(method RpcMethod) ([]byte, error) {
+
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
+	//err := SendMessage(ctx, "mn1", "Hello to you MN1")
+	var err error
+	err = nil
+
+	r := fmt.Sprintf(`{"status":"ok", "file": "%s"}`, method.Params[0])
+
+	return []byte(r), err
+}
+
+func (s *JsonRpcServer) Getinfo(method RpcMethod) ([]byte, error) {
+	type info struct {
+		Method    string `json:"method"`
+		PSLNode   bool   `json:"psl_node"`
+		RpcServer bool   `json:"rpc_server"`
+	}
+
+	i := info{method.Method, true, true}
+	return json.Marshal(i)
+}
+
+func (s *JsonRpcServer) Start(ctx context.Context, config *Config, logger *Logger, wg *sync.WaitGroup) func() error {
+
+	rpcServer := RpcServer{}
+	rpcServer.AddHandler("getinfo", s.Getinfo)
+	rpcServer.AddHandler("regticket", s.RegisterTicket)
+
+	rpcAddress := fmt.Sprintf("%s:%d", config.REST.Host, config.REST.Port)
+	server := rpcServer.InitServer(rpcAddress)
+
+	// Connect to cNode
+	pslAddrress := fmt.Sprintf("%s:%d", config.Pastel.Host, config.Pastel.Port)
+	s.psl.Connect(pslAddrress, config.Pastel.User, config.Pastel.Pwd, logger)
+
+	return CreateServer("rpc_server", ctx, config, logger, wg,
+		//startServer
+		func(ctx context.Context) error {
+			return nil
+		},
+		//runServer
+		func(ctx context.Context) error {
+			if err := server.ListenAndServe(); err != http.ErrServerClosed {
+				return fmt.Errorf("error starting Rest server: %w", err)
+			}
+			return nil
+		},
+		//stopServer
+		func(ctx context.Context) error {
+			return server.Shutdown(ctx)
+		})
 }
 
 func (rpcServer *RpcServer) AddHandler(handlerName string, handler func(method RpcMethod) ([]byte, error)) {
@@ -72,11 +149,4 @@ func (rpcServer *RpcServer) InitServer(address string) *http.Server {
 		w.Write(buf.Bytes())
 	})
 	return &http.Server{Addr: address, Handler: mux}
-}
-
-type RpcMethod struct {
-	Jsonrpc string   `json:"jsonrpc"`
-	Method  string   `json:"method"`
-	Params  []string `json:"params"`
-	Id      string   `json:"id"`
 }
