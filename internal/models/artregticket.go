@@ -1,4 +1,4 @@
-package psl_tools
+package models
 
 type ArtTicket struct {
 	AuthorPastelID string `json:"author_pastel_id"`

@@ -13,17 +13,23 @@ import (
 )
 
 type Logger struct {
-	ErrorLog *log.Logger
-	WarningLog  *log.Logger
-	InfoLog  *log.Logger
+	ErrorLog   *log.Logger
+	WarningLog *log.Logger
+	InfoLog    *log.Logger
 }
 
-func Run(application string,
-		configFile string, logFile string,
-		servers []func(ctx context.Context, config *Config, logger *Logger, wg *sync.WaitGroup) func() error) {
+type Application struct {
+	Name   string
+	ctx    context.Context
+	config Config
+	logger Logger
+	wg     sync.WaitGroup
+}
 
-	var config Config
-	if err := config.LoadConfig(configFile); err != nil {
+func (a *Application) Run(configFile string, logFile string,
+	servers []func(a *Application) func() error) {
+
+	if err := a.config.LoadConfig(configFile); err != nil {
 		panic(err)
 	}
 
@@ -31,28 +37,28 @@ func Run(application string,
 	if err != nil {
 		log.Fatal(err)
 	}
-	logger := &Logger{
-		ErrorLog: log.New(file2log, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile),
+	a.logger = Logger{
+		ErrorLog:   log.New(file2log, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile),
 		WarningLog: log.New(file2log, "WARN\t", log.Ldate|log.Ltime),
-		InfoLog: log.New(file2log, "INFO\t", log.Ldate|log.Ltime),
+		InfoLog:    log.New(file2log, "INFO\t", log.Ldate|log.Ltime),
 	}
 
-	logger.InfoLog.Printf("")
-	logger.InfoLog.Printf("=======================================")
-	logger.InfoLog.Printf("====== %s starting ======", application)
-	logger.InfoLog.Printf("=======================================")
+	a.logger.InfoLog.Printf("")
+	a.logger.InfoLog.Printf("=======================================")
+	a.logger.InfoLog.Printf("====== %s starting ======", a.Name)
+	a.logger.InfoLog.Printf("=======================================")
 
 	if servers == nil || len(servers) == 0 {
 		panic("runners array can't be empty")
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(servers))
-	ctx, cancel := context.WithCancel(context.Background())
+	a.wg.Add(len(servers))
+	var cancel context.CancelFunc
+	a.ctx, cancel = context.WithCancel(context.Background())
 	eg, egCtx := errgroup.WithContext(context.Background())
 
 	for _, f := range servers {
-		eg.Go(f(ctx, &config, logger, &wg))
+		eg.Go(f(a))
 	}
 
 	go func() {
@@ -64,55 +70,55 @@ func Run(application string,
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 		<-signals
-		logger.InfoLog.Println("program interrupted")
+		a.logger.InfoLog.Println("program interrupted")
 		cancel()
-		logger.InfoLog.Println("cancel context sent")
+		a.logger.InfoLog.Println("cancel context sent")
 	}()
 
 	if err := eg.Wait(); err != nil {
-		logger.ErrorLog.Printf("error in the server goroutines: %s\n", err)
+		a.logger.ErrorLog.Printf("error in the server goroutines: %s\n", err)
 		os.Exit(1)
 	}
-	logger.InfoLog.Println("everything closed successfully")
-	logger.InfoLog.Println("exiting")
+	a.logger.InfoLog.Println("everything closed successfully")
+	a.logger.InfoLog.Println("exiting")
 }
 
-func CreateServer(name string, ctx context.Context, config *Config, logger *Logger, wg *sync.WaitGroup,
+func (a *Application) CreateServer(serverName string,
 	startServer func(ctx context.Context) error,
 	runServer func(ctx context.Context) error,
 	stopServer func(ctx context.Context) error) func() error {
 
 	return func() error {
 
-		if err := startServer(ctx); err != nil {
-			return fmt.Errorf("error starting the %s server: %w", name, err)
+		if err := startServer(a.ctx); err != nil {
+			return fmt.Errorf("error starting the %s server: %w", serverName, err)
 		}
 
 		errChan := make(chan error, 1)
 
 		go func() {
-			<-ctx.Done()
+			<-a.ctx.Done()
 			shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			if err := stopServer(shutCtx); err != nil {
-				errChan <- fmt.Errorf("error shutting down the %s server: %w", name, err)
+				errChan <- fmt.Errorf("error shutting down the %s server: %w", serverName, err)
 			}
 
-			logger.ErrorLog.Printf("the %s server is closed\n", name)
+			a.logger.InfoLog.Printf("the %s server is closed\n", serverName)
 			close(errChan)
-			wg.Done()
+			a.wg.Done()
 		}()
 
-		logger.InfoLog.Printf("the %s server is starting\n", name)
+		a.logger.InfoLog.Printf("the %s server is starting\n", serverName)
 
-		if err := runServer(ctx); err != nil {
-			return fmt.Errorf("error running the %s server: %w", name, err)
+		if err := runServer(a.ctx); err != nil {
+			return fmt.Errorf("error running the %s server: %w", serverName, err)
 		}
 
-		logger.InfoLog.Printf("the %s server is closing\n", name)
+		a.logger.InfoLog.Printf("the %s server is closing\n", serverName)
 		err := <-errChan
-		wg.Wait()
+		a.wg.Wait()
 		return err
 	}
 }

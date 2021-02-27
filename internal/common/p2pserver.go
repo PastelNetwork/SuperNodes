@@ -1,17 +1,15 @@
-package main
+package common
 
 import (
 	"context"
-	"github.com/a-ok123/go-psl/internal/common"
-	"sync"
 )
 
 type P2PServer struct {
 }
 
-func (s *P2PServer) Start(ctx context.Context, config *common.Config, logger *common.Logger, wg *sync.WaitGroup) func() error {
+func (s *P2PServer) Start(app *Application) func() error {
 
-	return common.CreateServer("p2p_node", ctx, config, logger, wg,
+	return app.CreateServer("p2p_node",
 		//startServer
 		func(ctx context.Context) error {
 			return nil

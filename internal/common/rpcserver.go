@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 type RpcServer struct {
@@ -59,20 +58,19 @@ func (s *JsonRpcServer) Getinfo(method RpcMethod) ([]byte, error) {
 	return json.Marshal(i)
 }
 
-func (s *JsonRpcServer) Start(ctx context.Context, config *Config, logger *Logger, wg *sync.WaitGroup) func() error {
+func (s *JsonRpcServer) Start(app *Application) func() error {
 
 	rpcServer := RpcServer{}
 	rpcServer.AddHandler("getinfo", s.Getinfo)
 	rpcServer.AddHandler("regticket", s.RegisterTicket)
 
-	rpcAddress := fmt.Sprintf("%s:%d", config.REST.Host, config.REST.Port)
+	rpcAddress := fmt.Sprintf("%s:%d", app.config.REST.Host, app.config.REST.Port)
 	server := rpcServer.InitServer(rpcAddress)
 
-	// Connect to cNode
-	pslAddrress := fmt.Sprintf("%s:%d", config.Pastel.Host, config.Pastel.Port)
-	s.psl.Connect(pslAddrress, config.Pastel.User, config.Pastel.Pwd, logger)
+	// Initialise cNode client
+	s.psl.Init(app)
 
-	return CreateServer("rpc_server", ctx, config, logger, wg,
+	return app.CreateServer("rpc_server",
 		//startServer
 		func(ctx context.Context) error {
 			return nil

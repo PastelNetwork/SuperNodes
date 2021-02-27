@@ -2,7 +2,7 @@ package main
 
 func main() {
 
-	//var psl psl_tools.PslNode
+	//var psl models.PslNode
 	//psl.Connect("http://127.0.0.1:9932", "rt", "rt")
 	//
 	//val, err := psl.GetMNRegFee()
