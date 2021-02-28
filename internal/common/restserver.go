@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/a-ok123/go-psl/internal/models"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"net/http"
@@ -43,6 +45,8 @@ func (s *RESTServer) Start(app *Application) func() error {
 		"/tickets/mnid/:id": s.GetMNIDTicket,
 
 		"/pastelids": s.GetPastelIDs,
+
+		"/ws": s.RegisterArtTicket,
 	})
 
 	e := echo.New()
@@ -165,6 +169,24 @@ func (s *RESTServer) GetPastelIDs(c echo.Context) error {
 	return c.JSON(http.StatusOK, p)
 }
 
-func (s *RESTServer) RegisterTicket(c echo.Context) error {
-	return c.String(http.StatusOK, "!")
+func (s *RESTServer) RegisterArtTicket(c echo.Context) error {
+	conn, _, _, err := ws.UpgradeHTTP(c.Request(), c.Response().Writer)
+	if err != nil {
+		// handle error
+	}
+	go func() {
+		defer conn.Close()
+
+		for {
+			msg, op, err := wsutil.ReadClientData(conn)
+			if err != nil {
+				// handle error
+			}
+			err = wsutil.WriteServerMessage(conn, op, msg)
+			if err != nil {
+				// handle error
+			}
+		}
+	}()
+	return nil
 }
