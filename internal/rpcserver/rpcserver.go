@@ -1,10 +1,12 @@
-package common
+package rpcserver
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/a-ok123/go-psl/internal/common"
+	"github.com/a-ok123/go-psl/internal/pastelclient"
 	"net/http"
 	"reflect"
 	"strings"
@@ -22,53 +24,16 @@ type RpcMethod struct {
 }
 
 type JsonRpcServer struct {
-	psl PslNode
+	PslNode pastelclient.PslNode
 }
 
-/*
-	parameters:
-		name of art
-		number of copies
-		price per copy
-
-		artist's pastel id
-		address
-*/
-func (s *JsonRpcServer) RegisterTicket(method RpcMethod) ([]byte, error) {
-
-	//ctx, cancel := context.WithCancel(context.Background())
-	//defer cancel()
-	//err := SendMessage(ctx, "mn1", "Hello to you MN1")
-	var err error
-	err = nil
-
-	r := fmt.Sprintf(`{"status":"ok", "file": "%s"}`, method.Params[0])
-
-	return []byte(r), err
-}
-
-func (s *JsonRpcServer) Getinfo(method RpcMethod) ([]byte, error) {
-	type info struct {
-		Method    string `json:"method"`
-		PSLNode   bool   `json:"psl_node"`
-		RpcServer bool   `json:"rpc_server"`
-	}
-
-	i := info{method.Method, true, true}
-	return json.Marshal(i)
-}
-
-func (s *JsonRpcServer) Start(app *Application) func() error {
+func (s *JsonRpcServer) Start(app *common.Application) func() error {
 
 	rpcServer := RpcServer{}
 	rpcServer.AddHandler("getinfo", s.Getinfo)
-	rpcServer.AddHandler("regticket", s.RegisterTicket)
 
-	rpcAddress := fmt.Sprintf("%s:%d", app.config.REST.Host, app.config.REST.Port)
+	rpcAddress := fmt.Sprintf("%s:%d", app.Cfg.REST.Host, app.Cfg.REST.Port)
 	server := rpcServer.InitServer(rpcAddress)
-
-	// Initialise cNode client
-	s.psl.Init(app)
 
 	return app.CreateServer("rpc_server",
 		//startServer
@@ -147,4 +112,15 @@ func (rpcServer *RpcServer) InitServer(address string) *http.Server {
 		w.Write(buf.Bytes())
 	})
 	return &http.Server{Addr: address, Handler: mux}
+}
+
+func (s *JsonRpcServer) Getinfo(method RpcMethod) ([]byte, error) {
+	type info struct {
+		Method    string `json:"method"`
+		PSLNode   bool   `json:"psl_node"`
+		RpcServer bool   `json:"rpc_server"`
+	}
+
+	i := info{method.Method, true, true}
+	return json.Marshal(i)
 }

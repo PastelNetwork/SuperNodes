@@ -19,17 +19,17 @@ type Logger struct {
 }
 
 type Application struct {
-	Name   string
-	ctx    context.Context
-	config Config
-	logger Logger
-	wg     sync.WaitGroup
+	name string
+	ctx  context.Context
+	wg   sync.WaitGroup
+	Cfg  Config
+	Log  Logger
 }
 
-func (a *Application) Run(configFile string, logFile string,
-	servers []func(a *Application) func() error) {
+func (a *Application) Init(name string, configFile string, logFile string){
+	a.name = name
 
-	if err := a.config.LoadConfig(configFile); err != nil {
+	if err := a.Cfg.LoadConfig(configFile); err != nil {
 		panic(err)
 	}
 
@@ -37,16 +37,19 @@ func (a *Application) Run(configFile string, logFile string,
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.logger = Logger{
+	a.Log = Logger{
 		ErrorLog:   log.New(file2log, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile),
 		WarningLog: log.New(file2log, "WARN\t", log.Ldate|log.Ltime),
 		InfoLog:    log.New(file2log, "INFO\t", log.Ldate|log.Ltime),
 	}
+}
 
-	a.logger.InfoLog.Printf("")
-	a.logger.InfoLog.Printf("=======================================")
-	a.logger.InfoLog.Printf("====== %s starting ======", a.Name)
-	a.logger.InfoLog.Printf("=======================================")
+func (a *Application) Run(servers []func(a *Application) func() error) {
+
+	a.Log.InfoLog.Printf("")
+	a.Log.InfoLog.Printf("=======================================")
+	a.Log.InfoLog.Printf("====== %s starting ======", a.name)
+	a.Log.InfoLog.Printf("=======================================")
 
 	if servers == nil || len(servers) == 0 {
 		panic("runners array can't be empty")
@@ -70,17 +73,17 @@ func (a *Application) Run(configFile string, logFile string,
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 		<-signals
-		a.logger.InfoLog.Println("program interrupted")
+		a.Log.InfoLog.Println("program interrupted")
 		cancel()
-		a.logger.InfoLog.Println("cancel context sent")
+		a.Log.InfoLog.Println("cancel context sent")
 	}()
 
 	if err := eg.Wait(); err != nil {
-		a.logger.ErrorLog.Printf("error in the server goroutines: %s\n", err)
+		a.Log.ErrorLog.Printf("error in the server goroutines: %s\n", err)
 		os.Exit(1)
 	}
-	a.logger.InfoLog.Println("everything closed successfully")
-	a.logger.InfoLog.Println("exiting")
+	a.Log.InfoLog.Println("everything closed successfully")
+	a.Log.InfoLog.Println("exiting")
 }
 
 func (a *Application) CreateServer(serverName string,
@@ -105,18 +108,18 @@ func (a *Application) CreateServer(serverName string,
 				errChan <- fmt.Errorf("error shutting down the %s server: %w", serverName, err)
 			}
 
-			a.logger.InfoLog.Printf("the %s server is closed\n", serverName)
+			a.Log.InfoLog.Printf("the %s server is closed\n", serverName)
 			close(errChan)
 			a.wg.Done()
 		}()
 
-		a.logger.InfoLog.Printf("the %s server is starting\n", serverName)
+		a.Log.InfoLog.Printf("the %s server is starting\n", serverName)
 
 		if err := runServer(a.ctx); err != nil {
 			return fmt.Errorf("error running the %s server: %w", serverName, err)
 		}
 
-		a.logger.InfoLog.Printf("the %s server is closing\n", serverName)
+		a.Log.InfoLog.Printf("the %s server is closing\n", serverName)
 		err := <-errChan
 		a.wg.Wait()
 		return err

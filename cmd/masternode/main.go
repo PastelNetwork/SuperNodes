@@ -13,7 +13,7 @@ func main() {
 
 	/*	client := ipfs_client.IPFSClient{}
 
-		common.Run("config.yml", func(ctx context.Context, config *common.Config){
+		common.Run("config.yml", func(ctx context.Context, config *common.Cfg){
 
 			// connect to ipfs node and listen
 			client.Connect2Node()

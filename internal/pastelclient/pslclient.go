@@ -1,38 +1,39 @@
-package common
+package pastelclient
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/a-ok123/go-psl/internal/common"
 	"github.com/a-ok123/go-psl/internal/models"
 	"github.com/ybbus/jsonrpc/v2"
 )
 
 type PslNode struct {
 	client   jsonrpc.RPCClient
-	logger   Logger
+	logger   common.Logger
 	address  string
 	user     string
 	password string
 }
 
-func (n *PslNode) Init(app *Application) {
-	n.logger = app.logger
-	n.user = app.config.Pastel.User
-	n.password = app.config.Pastel.Pwd
-	n.address = fmt.Sprintf("http://%s:%d", app.config.Pastel.Host, app.config.Pastel.Port)
+func (n *PslNode) Init(app *common.Application) {
+	n.logger = app.Log
+	n.user = app.Cfg.Pastel.User
+	n.password = app.Cfg.Pastel.Pwd
+	n.address = fmt.Sprintf("http://%s:%d", app.Cfg.Pastel.Host, app.Cfg.Pastel.Port)
 }
 
 func (n *PslNode) Connect() {
 
-	n.logger.InfoLog.Println("-- Connecting to PSL cNode -- ")
 	n.client = jsonrpc.NewClientWithOpts(n.address,
 		&jsonrpc.RPCClientOpts{
 			CustomHeaders: map[string]string{
 				"Authorization": "Basic " + base64.StdEncoding.EncodeToString([]byte(n.user+":"+n.password)),
 			},
 		})
+	n.logger.InfoLog.Println("-- Connected to PSL cNode -- ")
 }
 
 func (n *PslNode) jsonrpccall(method string, params ...interface{}) (*jsonrpc.RPCResponse, error) {

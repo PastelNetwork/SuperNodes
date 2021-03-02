@@ -30,7 +30,7 @@ type P2PConfiguration struct {
 
 func (c *Config) LoadConfig(configFile string) error {
 
-	viper.SetConfigName(configFile) // config file name without extension
+	viper.SetConfigName(configFile) // Cfg file name without extension
 	// Set the path to look for the configurations file
 	viper.AddConfigPath(".")
 	// Enable VIPER to read Environment Variables
@@ -38,7 +38,7 @@ func (c *Config) LoadConfig(configFile string) error {
 	viper.SetConfigType("yml")
 
 	if err := viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("error reading config file: %s", err)
+		return fmt.Errorf("error reading Cfg file: %s", err)
 	}
 
 	err := viper.Unmarshal(c)
