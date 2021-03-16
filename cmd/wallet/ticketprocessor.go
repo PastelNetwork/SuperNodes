@@ -1,14 +1,9 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"github.com/a-ok123/go-psl/internal/common"
 	"github.com/a-ok123/go-psl/internal/pastelclient"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
 	"github.com/labstack/echo/v4"
-	"golang.org/x/sync/errgroup"
 )
 
 type TicketProc struct {
@@ -23,7 +18,7 @@ func (p *TicketProc) Init(app *common.Application) {
 }
 
 func (p *TicketProc) RegisterArtTicket(c echo.Context) error {
-	conn, _, _, err := ws.UpgradeHTTP(c.Request(), c.Response().Writer)
+	/*conn, _, _, err := ws.UpgradeHTTP(c.Request(), c.Response().Writer)
 	if err != nil {
 		return err
 	}
@@ -31,7 +26,9 @@ func (p *TicketProc) RegisterArtTicket(c echo.Context) error {
 	go func() {
 		defer conn.Close()
 
+		wg.Add(2)
 		eg, egCtx := errgroup.WithContext(context.Background())
+
 		results := make(chan int)
 		eg.Go( func() error {
 			for {
@@ -62,8 +59,8 @@ func (p *TicketProc) RegisterArtTicket(c echo.Context) error {
 			fmt.Println("processed", result)
 		}
 
-		// Wait for all fetches to complete.
-		return eg.Wait()
-	}()
+		// Wait for all goroutines to complete.
+		eg.Wait()
+	}()*/
 	return nil
 }

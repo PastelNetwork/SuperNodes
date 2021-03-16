@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -21,7 +20,7 @@ type Logger struct {
 type Application struct {
 	name string
 	ctx  context.Context
-	wg   sync.WaitGroup
+	//wg   sync.WaitGroup
 	Cfg  Config
 	Log  Logger
 }
@@ -55,20 +54,10 @@ func (a *Application) Run(servers []func(a *Application) func() error) {
 		panic("runners array can't be empty")
 	}
 
-	a.wg.Add(len(servers))
+	//a.wg.Add(len(servers))
+
 	var cancel context.CancelFunc
 	a.ctx, cancel = context.WithCancel(context.Background())
-	eg, egCtx := errgroup.WithContext(context.Background())
-
-	for _, f := range servers {
-		eg.Go(f(a))
-	}
-
-	go func() {
-		<-egCtx.Done()
-		cancel()
-	}()
-
 	go func() {
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
@@ -76,6 +65,15 @@ func (a *Application) Run(servers []func(a *Application) func() error) {
 		a.Log.InfoLog.Println("program interrupted")
 		cancel()
 		a.Log.InfoLog.Println("cancel context sent")
+	}()
+
+	eg, egCtx := errgroup.WithContext(a.ctx/*context.Background()*/)
+	for _, f := range servers {
+		eg.Go(f(a))
+	}
+	go func() {
+		<-egCtx.Done()
+		cancel()
 	}()
 
 	if err := eg.Wait(); err != nil {
@@ -110,7 +108,7 @@ func (a *Application) CreateServer(serverName string,
 
 			a.Log.InfoLog.Printf("the %s server is closed\n", serverName)
 			close(errChan)
-			a.wg.Done()
+			//a.wg.Done()
 		}()
 
 		a.Log.InfoLog.Printf("the %s server is starting\n", serverName)
@@ -121,7 +119,7 @@ func (a *Application) CreateServer(serverName string,
 
 		a.Log.InfoLog.Printf("the %s server is closing\n", serverName)
 		err := <-errChan
-		a.wg.Wait()
+		//a.wg.Wait()
 		return err
 	}
 }
