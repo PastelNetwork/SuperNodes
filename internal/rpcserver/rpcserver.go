@@ -36,7 +36,7 @@ func (s *JsonRpcServer) Start(app *common.Application) func() error {
 	server := rpcServer.InitServer(rpcAddress)
 
 	return app.CreateServer("rpc_server",
-		//startServer
+		//initServer
 		func(ctx context.Context) error {
 			return nil
 		},

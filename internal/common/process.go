@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -21,7 +20,6 @@ type Logger struct {
 type Application struct {
 	name string
 	ctx  context.Context
-	wg   sync.WaitGroup
 	Cfg  Config
 	Log  Logger
 }
@@ -55,7 +53,6 @@ func (a *Application) Run(servers []func(a *Application) func() error) {
 		panic("runners array can't be empty")
 	}
 
-	a.wg.Add(len(servers))
 	var cancel context.CancelFunc
 	a.ctx, cancel = context.WithCancel(context.Background())
 	eg, egCtx := errgroup.WithContext(context.Background())
@@ -87,13 +84,13 @@ func (a *Application) Run(servers []func(a *Application) func() error) {
 }
 
 func (a *Application) CreateServer(serverName string,
-	startServer func(ctx context.Context) error,
+	initServer func(ctx context.Context) error,
 	runServer func(ctx context.Context) error,
 	stopServer func(ctx context.Context) error) func() error {
 
 	return func() error {
 
-		if err := startServer(a.ctx); err != nil {
+		if err := initServer(a.ctx); err != nil {
 			return fmt.Errorf("error starting the %s server: %w", serverName, err)
 		}
 
@@ -110,7 +107,6 @@ func (a *Application) CreateServer(serverName string,
 
 			a.Log.InfoLog.Printf("the %s server is closed\n", serverName)
 			close(errChan)
-			a.wg.Done()
 		}()
 
 		a.Log.InfoLog.Printf("the %s server is starting\n", serverName)
@@ -121,7 +117,6 @@ func (a *Application) CreateServer(serverName string,
 
 		a.Log.InfoLog.Printf("the %s server is closing\n", serverName)
 		err := <-errChan
-		a.wg.Wait()
 		return err
 	}
 }

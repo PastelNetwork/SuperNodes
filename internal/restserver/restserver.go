@@ -57,7 +57,7 @@ func (s *RESTServer) Start(app *common.Application) func() error {
 	restAddress := fmt.Sprintf("%s:%d", app.Cfg.REST.Host, app.Cfg.REST.Port)
 
 	return app.CreateServer("rest_server",
-		//startServer
+		//initServer
 		func(ctx context.Context) error {
 			return nil
 		},
