@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"github.com/a-ok123/go-psl/internal/common"
 	"github.com/a-ok123/go-psl/internal/pastelclient"
+	"github.com/a-ok123/go-psl/internal/restserver"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/labstack/echo/v4"
@@ -12,14 +11,18 @@ import (
 )
 
 type TicketProc struct {
-	PslNode pastelclient.PslNode
-	config  common.Config
-	logger  common.Logger
+	pslNode *pastelclient.PslNode
+	config  *common.Config
+	logger  *common.Logger
 }
 
-func (p *TicketProc) Init(app *common.Application) {
-	p.config = app.Cfg
-	p.logger = app.Log
+type WSMessage struct {
+	op ws.OpCode
+	msg []byte
+}
+
+func NewTicketProc(psl *pastelclient.PslNode, cfg *common.Config, log *common.Logger) *TicketProc {
+	return &TicketProc{psl, cfg, log}
 }
 
 func (p *TicketProc) RegisterArtTicket(c echo.Context) error {
@@ -28,42 +31,61 @@ func (p *TicketProc) RegisterArtTicket(c echo.Context) error {
 		return err
 	}
 
-	go func() {
+	cc := c.(*restserver.RESTServerContext)
+	//cc.Jobs.Go( func() error {
+	go func() error {
 		defer conn.Close()
 
-		eg, egCtx := errgroup.WithContext(context.Background())
-		results := make(chan int)
-		eg.Go( func() error {
+		p.logger.InfoLog.Println("New Ticket Processor started")
+
+		eg, ctx := errgroup.WithContext(cc.AppCtx)
+
+		messages := make(chan WSMessage)
+
+		eg.Go(func() error {
+			p.logger.InfoLog.Println("NTP WS Listener started")
 			for {
+				p.logger.InfoLog.Println("Waiting for message")
 				msg, op, err := wsutil.ReadClientData(conn)
+				p.logger.InfoLog.Println("NTP WS Worker exiting - error and signal check")
 				if err != nil {
-					// handle error
-				}
-				err = wsutil.WriteServerMessage(conn, op, msg)
-				if err != nil {
-					// handle error
+					p.logger.ErrorLog.Printf("Error in New Ticket Processor Listener - %w", err)
+					return err
 				}
 				select {
-				case results <- current:
-					return nil
-				// Close out if another error occurs.
 				case <-ctx.Done():
-					return ctx.Err()
+					p.logger.InfoLog.Println("NTP WS Listener exiting")
+					return nil
+				case messages <- WSMessage{op, msg}:
+					continue
 				}
 			}
-			return nil
 		})
-		go func() {
-			g.Wait()
-			close(results)
-		}()
-
-		for result := range results {
-			fmt.Println("processed", result)
+		eg.Go(func() error {
+			p.logger.InfoLog.Println("NTP WS Worker started")
+			for {
+				select {
+				case <-ctx.Done():
+					p.logger.InfoLog.Println("NTP WS Worker exiting")
+					err = wsutil.WriteServerMessage(conn, ws.OpClose, nil)
+					return nil
+				case msg := <-messages:
+					p.logger.InfoLog.Printf("Got message - %s (opcode - %c)", msg.msg, msg.op)
+					err = wsutil.WriteServerMessage(conn, msg.op, msg.msg)
+					if err != nil {
+						p.logger.ErrorLog.Printf("Error in New Ticket Processor Listener - %s", err)
+						return err
+					}
+				}
+			}
+		})
+		if err := eg.Wait(); err != nil {
+			p.logger.ErrorLog.Printf("Error in New Ticket Processor - %s", err)
+			return nil
 		}
 
-		// Wait for all fetches to complete.
-		return eg.Wait()
+		p.logger.InfoLog.Println("New Ticket Processor exiting")
+		return nil
 	}()
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func (s *RESTServer) getAllIDTickets(c echo.Context, idtype string) error {
-	t, err := s.PslNode.ListIDTickets(idtype)
+	t, err := s.pslNode.ListIDTickets(idtype)
 	if err != nil {
 		if err.Error() == "Nothing found" {
 			return c.JSON(http.StatusOK, t)
@@ -17,7 +17,7 @@ func (s *RESTServer) getAllIDTickets(c echo.Context, idtype string) error {
 	return c.JSON(http.StatusOK, t)
 }
 func (s *RESTServer) getMyIDTickets(c echo.Context, idtype string) error {
-	p, err := s.PslNode.ListPastelIDs()
+	p, err := s.pslNode.ListPastelIDs()
 	if err != nil {
 		if err.Error() == "Nothing found" {
 			return c.JSON(http.StatusOK, p)
@@ -26,7 +26,7 @@ func (s *RESTServer) getMyIDTickets(c echo.Context, idtype string) error {
 	}
 	t := []models.IdTicket{}
 	for _, pid := range *p {
-		ticket, err := s.PslNode.FindIDTicket(pid.PastelID)
+		ticket, err := s.pslNode.FindIDTicket(pid.PastelID)
 		if err != nil {
 			if err.Error() == "Key is not found" {
 				continue
@@ -41,7 +41,7 @@ func (s *RESTServer) getMyIDTickets(c echo.Context, idtype string) error {
 }
 func (s *RESTServer) getIDTicket(c echo.Context, idtype string) error {
 	id := c.Param("id")
-	t, err := s.PslNode.FindIDTicket(id)
+	t, err := s.pslNode.FindIDTicket(id)
 	if err != nil {
 		if err.Error() == "Key is not found" {
 			return c.JSON(http.StatusOK, "")
@@ -76,7 +76,7 @@ func (s *RESTServer) GetMNIDTicket(c echo.Context) error {
 	return s.getIDTicket(c, "mn")
 }
 func (s *RESTServer) GetPastelIDs(c echo.Context) error {
-	p, err := s.PslNode.ListPastelIDs()
+	p, err := s.pslNode.ListPastelIDs()
 	if err != nil {
 		return err
 	}

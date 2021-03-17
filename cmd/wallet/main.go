@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/a-ok123/go-psl/internal/common"
 	"github.com/a-ok123/go-psl/internal/fileserver"
 	"github.com/a-ok123/go-psl/internal/pastelclient"
@@ -9,23 +10,20 @@ import (
 
 func main() {
 
-	app := common.Application{}
-	app.Init("Pastel Wallet Service", "config.yml", "stovacore.log",)
+	app := common.NewApplication("Pastel Wallet Service", "config.yml", "stovacore.log",)
 
-	pslNode := pastelclient.PslNode{}
-	pslNode.Init(&app)
+	pslNode := pastelclient.New(&app.Cfg, &app.Log)
 
-	ticketProc := TicketProc{PslNode: pslNode}
-	ticketProc.Init(&app)
+	restServer := restserver.New(pslNode, &app.Cfg, &app.Log)
 
-	restServer := restserver.RESTServer{PslNode: pslNode}
+	ticketProc := NewTicketProc(pslNode, &app.Cfg, &app.Log)
 	restServer.AddGetHandlers(map[string]interface{}{
 		"/ws": ticketProc.RegisterArtTicket,
 	})
 
 	p2pServer := fileserver.P2PServer{}
 
-	app.Run([]func(a *common.Application) func() error{
+	app.Run([]func(ctx context.Context, a *common.Application) func() error{
 			// Start REST Server
 			restServer.Start,
 			// Start p2p Listener

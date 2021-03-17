@@ -12,17 +12,20 @@ import (
 
 type PslNode struct {
 	client   jsonrpc.RPCClient
-	logger   common.Logger
+	logger   *common.Logger
 	address  string
 	user     string
 	password string
 }
 
-func (n *PslNode) Init(app *common.Application) {
-	n.logger = app.Log
-	n.user = app.Cfg.Pastel.User
-	n.password = app.Cfg.Pastel.Pwd
-	n.address = fmt.Sprintf("http://%s:%d", app.Cfg.Pastel.Host, app.Cfg.Pastel.Port)
+func New(cfg *common.Config, log *common.Logger) *PslNode {
+	n := new(PslNode)
+
+	n.logger = log
+	n.user = cfg.Pastel.User
+	n.password = cfg.Pastel.Pwd
+	n.address = fmt.Sprintf("http://%s:%d", cfg.Pastel.Host, cfg.Pastel.Port)
+	return &PslNode{logger: log}
 }
 
 func (n *PslNode) Connect() {

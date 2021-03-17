@@ -8,9 +8,9 @@ import (
 type P2PServer struct {
 }
 
-func (s *P2PServer) Start(app *common.Application) func() error {
+func (s *P2PServer) Start(ctx context.Context, app *common.Application) func() error {
 
-	return app.CreateServer("p2p_node",
+	return app.CreateServer(ctx, "p2p_node",
 		//initServer
 		func(ctx context.Context) error {
 			return nil

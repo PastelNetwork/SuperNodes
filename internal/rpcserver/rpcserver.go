@@ -13,7 +13,9 @@ import (
 )
 
 type RpcServer struct {
-	funcs map[string]interface{}
+	pslNode *pastelclient.PslNode
+	config	*common.Config
+	funcs 	map[string]interface{}
 }
 
 type RpcMethod struct {
@@ -23,19 +25,18 @@ type RpcMethod struct {
 	Id      string   `json:"id"`
 }
 
-type JsonRpcServer struct {
-	PslNode pastelclient.PslNode
+func New(psl *pastelclient.PslNode, cfg *common.Config) *RpcServer {
+	return &RpcServer{pslNode: psl, config: cfg}
 }
 
-func (s *JsonRpcServer) Start(app *common.Application) func() error {
+func (s *RpcServer) Start(ctx context.Context, app *common.Application) func() error {
 
-	rpcServer := RpcServer{}
-	rpcServer.AddHandler("getinfo", s.Getinfo)
+	s.AddHandler("getinfo", s.Getinfo)
 
 	rpcAddress := fmt.Sprintf("%s:%d", app.Cfg.REST.Host, app.Cfg.REST.Port)
-	server := rpcServer.InitServer(rpcAddress)
+	server := s.InitServer(rpcAddress)
 
-	return app.CreateServer("rpc_server",
+	return app.CreateServer(ctx, "rpc_server",
 		//initServer
 		func(ctx context.Context) error {
 			return nil
@@ -114,7 +115,7 @@ func (rpcServer *RpcServer) InitServer(address string) *http.Server {
 	return &http.Server{Addr: address, Handler: mux}
 }
 
-func (s *JsonRpcServer) Getinfo(method RpcMethod) ([]byte, error) {
+func (s *RpcServer) Getinfo(method RpcMethod) ([]byte, error) {
 	type info struct {
 		Method    string `json:"method"`
 		PSLNode   bool   `json:"psl_node"`

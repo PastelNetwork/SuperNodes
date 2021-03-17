@@ -19,12 +19,13 @@ type Logger struct {
 
 type Application struct {
 	name string
-	ctx  context.Context
 	Cfg  Config
 	Log  Logger
 }
 
-func (a *Application) Init(name string, configFile string, logFile string){
+func NewApplication(name string, configFile string, logFile string) *Application {
+	a := new(Application)
+
 	a.name = name
 
 	if err := a.Cfg.LoadConfig(configFile); err != nil {
@@ -40,9 +41,11 @@ func (a *Application) Init(name string, configFile string, logFile string){
 		WarningLog: log.New(file2log, "WARN\t", log.Ldate|log.Ltime),
 		InfoLog:    log.New(file2log, "INFO\t", log.Ldate|log.Ltime),
 	}
+
+	return a
 }
 
-func (a *Application) Run(servers []func(a *Application) func() error) {
+func (a *Application) Run(servers []func(ctx context.Context, a *Application) func() error) {
 
 	a.Log.InfoLog.Printf("")
 	a.Log.InfoLog.Printf("=======================================")
@@ -53,19 +56,7 @@ func (a *Application) Run(servers []func(a *Application) func() error) {
 		panic("runners array can't be empty")
 	}
 
-	var cancel context.CancelFunc
-	a.ctx, cancel = context.WithCancel(context.Background())
-	eg, egCtx := errgroup.WithContext(context.Background())
-
-	for _, f := range servers {
-		eg.Go(f(a))
-	}
-
-	go func() {
-		<-egCtx.Done()
-		cancel()
-	}()
-
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
@@ -75,6 +66,11 @@ func (a *Application) Run(servers []func(a *Application) func() error) {
 		a.Log.InfoLog.Println("cancel context sent")
 	}()
 
+	eg, ctx := errgroup.WithContext(ctx)
+	for _, f := range servers {
+		eg.Go(f(ctx, a))
+	}
+
 	if err := eg.Wait(); err != nil {
 		a.Log.ErrorLog.Printf("error in the server goroutines: %s\n", err)
 		os.Exit(1)
@@ -83,40 +79,41 @@ func (a *Application) Run(servers []func(a *Application) func() error) {
 	a.Log.InfoLog.Println("exiting")
 }
 
-func (a *Application) CreateServer(serverName string,
-	initServer func(ctx context.Context) error,
+func (a *Application) CreateServer(ctx context.Context, serverName string,
+	startServer func(ctx context.Context) error,
 	runServer func(ctx context.Context) error,
 	stopServer func(ctx context.Context) error) func() error {
 
 	return func() error {
 
-		if err := initServer(a.ctx); err != nil {
+		if err := startServer(ctx); err != nil {
 			return fmt.Errorf("error starting the %s server: %w", serverName, err)
 		}
 
 		errChan := make(chan error, 1)
 
 		go func() {
-			<-a.ctx.Done()
+			<-ctx.Done()
 			shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
+			a.Log.InfoLog.Printf("stopping server %s\n", serverName)
 			if err := stopServer(shutCtx); err != nil {
 				errChan <- fmt.Errorf("error shutting down the %s server: %w", serverName, err)
 			}
-
-			a.Log.InfoLog.Printf("the %s server is closed\n", serverName)
+			a.Log.InfoLog.Printf("the %s server is stopped\n", serverName)
 			close(errChan)
 		}()
 
 		a.Log.InfoLog.Printf("the %s server is starting\n", serverName)
 
-		if err := runServer(a.ctx); err != nil {
+		if err := runServer(ctx); err != nil {
 			return fmt.Errorf("error running the %s server: %w", serverName, err)
 		}
-
 		a.Log.InfoLog.Printf("the %s server is closing\n", serverName)
+
 		err := <-errChan
+		a.Log.InfoLog.Printf("the %s server is closed\n", serverName)
 		return err
 	}
 }
