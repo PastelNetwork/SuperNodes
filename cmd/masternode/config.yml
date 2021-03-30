@@ -1,6 +1,0 @@
-ipfs:
-  bootstrapNodes:
-    - "/ip4/13.59.218.7/tcp/4001/p2p/12D3KooWHCtNvtat8LtQ3B7zDLr1TtiTLhBF6PLLba9x1XK2KcZp"
-
-pastel:
-  test: "test"

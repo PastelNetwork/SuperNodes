@@ -12,20 +12,28 @@ type Config struct {
 }
 
 type PastelConfiguration struct {
-	DataDir string `yaml:"data-dir"`
-	Host    string `yaml:"host"`
-	Port    int    `yaml:"port"`
-	User    string `yaml:"user"`
-	Pwd     string `yaml:"pwd"`
+	DataDir string	`yaml:"data-dir"`
+	Host    string	`yaml:"host"`
+	Port    int   	`yaml:"port"`
+	User    string	`yaml:"user"`
+	Pwd     string	`yaml:"pwd"`
 }
 
 type RESTServerConfiguration struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+	Host	string	`yaml:"host"`
+	Port	int		`yaml:"port"`
+}
+
+type P2PSeeds struct {
+	Host	string	`yaml:"host"`
+	Port 	string 	`yaml:"port"`
 }
 
 type P2PConfiguration struct {
-	Port int `yaml:"port"`
+	Host	string		`yaml:"host"`
+	Port 	string 		`yaml:"port"`
+	Stun 	bool 		`yaml:"stun"`
+	Seeds	[]P2PSeeds	`yaml:"seeds"`
 }
 
 func (c *Config) LoadConfig(configFile string) error {
