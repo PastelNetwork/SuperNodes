@@ -3,15 +3,14 @@ package fileserver
 import (
 	"context"
 	"fmt"
-	"github.com/a-ok123/go-psl/internal/common"
-	"github.com/a-ok123/kademlia"
+	"github.com/pastelnetwork/supernodes/internal/common"
 	"golang.org/x/sync/errgroup"
 )
 
 type P2PServer struct {
 	config       *common.Config
 	logger   	 *common.Logger
-	dht			 *kademlia.DHT
+	dht			 *DHT
 }
 
 func New(cfg *common.Config, log *common.Logger) *P2PServer {
@@ -20,17 +19,17 @@ func New(cfg *common.Config, log *common.Logger) *P2PServer {
 
 func (s *P2PServer) Start(ctx context.Context, app *common.Application) func() error {
 
-	var bootstrapNodes []*kademlia.NetworkNode
+	var bootstrapNodes []*NetworkNode
 
 	for _, seed := range app.Cfg.P2P.Seeds {
 		if seed.Host != "" || seed.Port != "" {
-			bootstrapNode := kademlia.NewNetworkNode(seed.Host, seed.Port)
+			bootstrapNode := NewNetworkNode(seed.Host, seed.Port)
 			bootstrapNodes = append(bootstrapNodes, bootstrapNode)
 		}
 	}
 
 	var err error
-	s.dht, err = kademlia.NewDHT(&kademlia.MemoryStore{}, &kademlia.Options{
+	s.dht, err = NewDHT(&MemoryStore{}, &Options{
 		BootstrapNodes: bootstrapNodes,
 		IP:             app.Cfg.P2P.Host,
 		Port:           app.Cfg.P2P.Port,

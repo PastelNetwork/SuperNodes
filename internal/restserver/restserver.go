@@ -3,8 +3,8 @@ package restserver
 import (
 	"context"
 	"fmt"
-	"github.com/a-ok123/go-psl/internal/common"
-	"github.com/a-ok123/go-psl/internal/pastelclient"
+	"github.com/pastelnetwork/supernodes/internal/common"
+	"github.com/pastelnetwork/supernodes/internal/pastelclient"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"net/http"

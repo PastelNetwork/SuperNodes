@@ -1,9 +1,8 @@
-module github.com/a-ok123/go-psl
+module github.com/pastelnetwork/supernodes
 
 go 1.15
 
 require (
-	github.com/a-ok123/kademlia v0.0.0-20201215095042-a0b35a525a3a
 	github.com/anacrolix/envpprof v1.1.1 // indirect
 	github.com/anacrolix/sync v0.2.0 // indirect
 	github.com/anacrolix/utp v0.1.0 // indirect
@@ -19,5 +18,4 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/ybbus/jsonrpc/v2 v2.1.6
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
-	gopkg.in/readline.v1 v1.0.0-20160726135117-62c6fe619375
 )

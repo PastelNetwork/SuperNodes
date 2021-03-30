@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/a-ok123/go-psl/internal/common"
-	"github.com/a-ok123/go-psl/internal/models"
+	"github.com/pastelnetwork/supernodes/internal/common"
+	"github.com/pastelnetwork/supernodes/internal/models"
 	"github.com/ybbus/jsonrpc/v2"
 )
 

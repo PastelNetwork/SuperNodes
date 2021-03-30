@@ -1,0 +1,13 @@
+pastel:
+  data-dir: "~/.pastel"
+  host: "127.0.0.1"
+  port: 9932
+  user: "rt"
+  pwd: "rt"
+
+rest:
+  host: "localhost"
+  port: 4001
+
+p2p:
+  port: 4444

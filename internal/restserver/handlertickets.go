@@ -1,7 +1,7 @@
 package restserver
 
 import (
-	"github.com/a-ok123/go-psl/internal/models"
+	"github.com/pastelnetwork/supernodes/internal/models"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
